@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase, supabaseAdmin } from '@/lib/supabase';
+import { supabase } from '@/lib/supabase';
+import { supabaseAdmin } from '@/lib/supabaseAdmin';  // <-- FIXED
 import { getAdminSession } from '@/lib/auth';
 
 export async function GET(request: NextRequest) {
@@ -7,7 +8,10 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams;
     const subject = searchParams.get('subject');
 
-    let query = supabase.from('questions').select('*').order('created_at', { ascending: false });
+    let query = supabase
+      .from('questions')
+      .select('*')
+      .order('created_at', { ascending: false });
 
     if (subject) {
       query = query.eq('subject', subject);
@@ -34,7 +38,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const adminId = getAdminSession();
+    const adminId = await getAdminSession(); // <-- FIXED: async
     if (!adminId) {
       return NextResponse.json(
         { error: 'Unauthorized' },
@@ -45,8 +49,15 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { question_text, option_a, option_b, option_c, option_d, correct_index, subject } = body;
 
-    if (!question_text || !option_a || !option_b || !option_c || !option_d ||
-        correct_index === undefined || !subject) {
+    if (
+      !question_text ||
+      !option_a ||
+      !option_b ||
+      !option_c ||
+      !option_d ||
+      correct_index === undefined ||
+      !subject
+    ) {
       return NextResponse.json(
         { error: 'All fields are required' },
         { status: 400 }
