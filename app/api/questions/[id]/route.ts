@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabaseAdmin } from '@/lib/supabase';
+import { supabaseAdmin } from '@/lib/supabaseAdmin';   // ✅ FIXED IMPORT
 import { getAdminSession } from '@/lib/auth';
 
 export async function PUT(
@@ -7,23 +7,24 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   try {
-    const adminId = getAdminSession();
+    const adminId = await getAdminSession(); // ✅ FIXED
     if (!adminId) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const body = await request.json();
     const { question_text, option_a, option_b, option_c, option_d, correct_index, subject } = body;
 
-    if (!question_text || !option_a || !option_b || !option_c || !option_d ||
-        correct_index === undefined || !subject) {
-      return NextResponse.json(
-        { error: 'All fields are required' },
-        { status: 400 }
-      );
+    if (
+      !question_text ||
+      !option_a ||
+      !option_b ||
+      !option_c ||
+      !option_d ||
+      correct_index === undefined ||
+      !subject
+    ) {
+      return NextResponse.json({ error: 'All fields are required' }, { status: 400 });
     }
 
     if (correct_index < 0 || correct_index > 3) {
@@ -59,10 +60,7 @@ export async function PUT(
     return NextResponse.json({ question });
   } catch (error) {
     console.error('Update question error:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
 
@@ -71,12 +69,9 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    const adminId = getAdminSession();
+    const adminId = await getAdminSession(); // ✅ FIXED
     if (!adminId) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const { error } = await supabaseAdmin
@@ -94,9 +89,6 @@ export async function DELETE(
     return NextResponse.json({ message: 'Question deleted successfully' });
   } catch (error) {
     console.error('Delete question error:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
