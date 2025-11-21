@@ -1,12 +1,20 @@
 'use client';
 
 import React, { useRef, useState } from 'react';
-import { motion, AnimatePresence, easeOut, cubicBezier } from 'framer-motion'; // ⭐ Added easeOut and cubicBezier imports
+import { motion, AnimatePresence, easeOut, cubicBezier } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, Save, Copy, Upload, Zap, CheckCircle, GraduationCap } from 'lucide-react'; // ⭐ Added GraduationCap
-import { Progress } from '@/components/ui/progress'; // ⭐ Added Progress component (from Shadcn)
-import { Header } from '@/components/ui/header'; // ⭐ Added Header
+import {
+  Loader2,
+  Save,
+  Copy,
+  Upload,
+  Zap,
+  CheckCircle,
+  GraduationCap,
+} from 'lucide-react';
+import { Progress } from '@/components/ui/progress';
+import { Header } from '@/components/ui/header';
 
 type MCQ = {
   question_text: string;
@@ -18,7 +26,7 @@ type MCQ = {
   subject?: string;
 };
 
-// ⭐ Animation Variants - Fixed TS types with easing functions
+// ---- animations ----
 const cardVariants = {
   hidden: { opacity: 0, y: 20 },
   visible: (i: number) => ({
@@ -27,21 +35,19 @@ const cardVariants = {
     transition: {
       delay: i * 0.1,
       duration: 0.6,
-      ease: cubicBezier(0.22, 1, 0.36, 1), // ⭐ Use cubicBezier function for custom bezier
+      ease: cubicBezier(0.22, 1, 0.36, 1),
     },
   }),
 };
 
 const buttonVariants = {
-  hover: { scale: 1.05, transition: { duration: 0.2 } },
-  tap: { scale: 0.98 },
+  hover: { scale: 1.05 },
+  tap: { scale: 0.95 },
 };
 
 const staggerContainer = {
   visible: {
-    transition: {
-      staggerChildren: 0.1,
-    },
+    transition: { staggerChildren: 0.1 },
   },
 };
 
@@ -50,11 +56,11 @@ const mcqItemVariants = {
   visible: {
     opacity: 1,
     x: 0,
-    transition: { duration: 0.4, ease: easeOut }, // ⭐ Use easeOut function instead of string
+    transition: { duration: 0.4, ease: easeOut },
   },
 };
 
-export default function AutoMCQPage() {
+export default function AutoMcqClient() {
   const [file, setFile] = useState<File | null>(null);
   const [ocrText, setOcrText] = useState('');
   const [progress, setProgress] = useState(0);
@@ -62,15 +68,17 @@ export default function AutoMCQPage() {
   const [mcqs, setMcqs] = useState<MCQ[]>([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState(false); // ⭐ Added success state for animations
+  const [success, setSuccess] = useState(false);
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
-  // --- Image Preprocess Function ---
-  async function preprocessImageToBlob(file: File, maxWidth = 1400): Promise<Blob | null> {
+  // ---- Preprocess Image ----
+  async function preprocessImageToBlob(file: File): Promise<Blob | null> {
     return new Promise((resolve) => {
       const img = new Image();
+
       img.onload = () => {
+        const maxWidth = 1400;
         const scale = Math.min(1, maxWidth / img.width);
         const w = Math.round(img.width * scale);
         const h = Math.round(img.height * scale);
@@ -79,28 +87,37 @@ export default function AutoMCQPage() {
         canvas.width = w;
         canvas.height = h;
         const ctx = canvas.getContext('2d')!;
-        ctx.fillStyle = '#ffffff';
+
+        ctx.fillStyle = '#fff';
         ctx.fillRect(0, 0, w, h);
         ctx.drawImage(img, 0, 0, w, h);
 
         const id = ctx.getImageData(0, 0, w, h);
         const data = id.data;
+
         const contrast = 1.08;
         const brightness = 6;
         const factor = (259 * (contrast + 255)) / (255 * (259 - contrast));
+
         for (let i = 0; i < data.length; i += 4) {
-          const r = data[i], g = data[i + 1], b = data[i + 2];
+          const r = data[i],
+            g = data[i + 1],
+            b = data[i + 2];
           const gray = Math.round(0.299 * r + 0.587 * g + 0.114 * b);
+
           let v = Math.round(factor * (gray - 128) + 128 + brightness);
           v = Math.min(255, Math.max(0, v));
+
           data[i] = data[i + 1] = data[i + 2] = v;
         }
+
         ctx.putImageData(id, 0, 0);
 
         canvas.toBlob((blob) => resolve(blob), 'image/jpeg', 0.92);
       };
 
       img.onerror = () => resolve(null);
+
       const reader = new FileReader();
       reader.onload = () => {
         img.src = String(reader.result);
@@ -109,22 +126,23 @@ export default function AutoMCQPage() {
     });
   }
 
-  // --- OCR Function ---
+  // ---- OCR ----
   async function runOCR(blob: Blob) {
     const Tesseract = (await import('tesseract.js')).default;
 
     return await Tesseract.recognize(blob, 'eng', {
-      logger: (m) => {
+      logger: (m: any) => {
         if (m?.status === 'recognizing text') {
           setProgress(Math.round(m.progress * 100));
         }
       },
-    }).then((res) => res?.data?.text ?? '');
+    }).then((res: any) => res?.data?.text || '');
   }
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // ---- Handlers ----
+  const handleFileChange = (e: any) => {
     setError(null);
-    setSuccess(false); // ⭐ Reset success
+    setSuccess(false);
     setMcqs([]);
     setOcrText('');
     setProgress(0);
@@ -132,27 +150,23 @@ export default function AutoMCQPage() {
   };
 
   const handleExtract = async () => {
-    if (!file) return setError('Please choose an image file first.');
+    if (!file) return setError('Please choose an image.');
 
     setError(null);
     setProgress(5);
 
     const blob = await preprocessImageToBlob(file);
-    if (!blob) return setError('Failed to preprocess image.');
+    if (!blob) return setError('Image preprocessing failed.');
 
     const text = await runOCR(blob);
     setOcrText(text.trim());
     setProgress(100);
 
-    if (text.trim().length < 10) {
-      setError('OCR returned too little text. Try a clearer image.');
-    }
+    if (text.trim().length < 10) setError('OCR returned very little text.');
   };
 
   const handleGenerate = async () => {
-    if (!ocrText || ocrText.trim().length < 20) {
-      return setError('Extracted text is too short.');
-    }
+    if (!ocrText) return setError('No extracted text present.');
 
     setGenerating(true);
     const res = await fetch('/api/mcq/generate', {
@@ -166,11 +180,11 @@ export default function AutoMCQPage() {
 
     if (!res.ok) return setError(data.error || 'MCQ generation failed.');
 
-    setMcqs(data.mcqs || []);
+    setMcqs(data.mcqs);
   };
 
   const handleSave = async () => {
-    if (mcqs.length === 0) return setError('No MCQs to save.');
+    if (!mcqs.length) return setError('No MCQs to save.');
 
     setSaving(true);
     const res = await fetch('/api/questions/bulk', {
@@ -182,224 +196,107 @@ export default function AutoMCQPage() {
     const data = await res.json();
     setSaving(false);
 
-    if (!res.ok) return setError(data.error || 'Save failed');
+    if (!res.ok) return setError(data.error || 'Save error.');
 
-    setSuccess(true); // ⭐ Trigger success animation
-    setTimeout(() => setSuccess(false), 3000); // ⭐ Auto-hide after 3s
-    alert('Saved MCQs successfully.');
+    setSuccess(true);
+    setTimeout(() => setSuccess(false), 3000);
   };
 
+  // ---- UI ----
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50"> {/* ⭐ Subtle gradient background */}
-      {/* ⭐ Header Added at Top */}
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
       <Header />
 
       <div className="max-w-4xl mx-auto py-12 px-4">
-        {/* Page Title - Animated */}
+        {/* ---- Header ---- */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8 }}
           className="flex items-center gap-4 mb-10"
         >
-          {/* ⭐ Replaced img with GraduationCap icon */}
-          <motion.div
-            whileHover={{ scale: 1.1, rotate: 5 }}
-            transition={{ duration: 0.3 }}
-            className="p-3 bg-gradient-to-br from-slate-900 to-blue-900 rounded-xl shadow-md"
-          >
-            <GraduationCap className="h-8 w-8 text-white drop-shadow-sm" />
-          </motion.div>
+          <div className="p-3 bg-slate-900 rounded-xl shadow-md">
+            <GraduationCap className="h-8 w-8 text-white" />
+          </div>
+
           <div>
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+            <h1 className="text-3xl font-bold text-blue-700">
               Auto MCQ Generator
-            </h1> {/* ⭐ Gradient text for title */}
-            <p className="text-sm text-slate-600 mt-1">
-              Upload an image → Extract text → Convert into MCQs instantly.
+            </h1>
+            <p className="text-slate-600 text-sm">
+              Upload image → Extract text → Generate MCQs instantly.
             </p>
           </div>
         </motion.div>
 
-        {/* Step 1 - Animated Card */}
-        <motion.div
-          variants={cardVariants}
-          initial="hidden"
-          animate="visible"
-          custom={0}
-        >
-          <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300 border-0 bg-white/80 backdrop-blur-sm"> {/* ⭐ Enhanced shadow & backdrop */}
-            <CardHeader className="pb-4">
-              <CardTitle className="text-lg flex items-center gap-2">
-                <Upload className="h-5 w-5 text-blue-500" /> {/* ⭐ Icon */}
+        {/* ---- Step 1 Card ---- */}
+        <motion.div variants={cardVariants} initial="hidden" animate="visible" custom={0}>
+          <Card className="shadow-lg border-0 bg-white/80 backdrop-blur-sm">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <Upload className="h-5 w-5 text-blue-500" />
                 Step 1 — Upload & Extract
               </CardTitle>
             </CardHeader>
+
             <CardContent>
-              <div className="flex flex-col gap-3">
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleFileChange}
-                  className="block w-full text-sm file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
-                /> {/* ⭐ Styled file input */}
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleFileChange}
+                className="block w-full text-sm file:bg-blue-100 file:text-blue-700 file:rounded-lg file:px-4 file:py-2"
+              />
 
-                <div className="flex gap-2">
-                  <motion.div variants={buttonVariants}>
-                    <Button
-                      asChild
-                      onClick={handleExtract}
-                      disabled={!file || progress > 0}
-                      className="flex-1"
-                    >
-                      <motion.button whileHover="hover" whileTap="tap">
-                        {progress > 0 && progress < 100 ? (
-                          <>
-                            <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                            Extracting...
-                          </>
-                        ) : (
-                          <>
-                            <Zap className="h-4 w-4 mr-2" /> {/* ⭐ Icon */}
-                            Extract Text
-                          </>
-                        )}
-                      </motion.button>
-                    </Button>
-                  </motion.div>
+              <div className="flex gap-3 mt-4">
+                <Button onClick={handleExtract} disabled={!file}>
+                  Extract Text
+                </Button>
 
-                  <motion.div variants={buttonVariants}>
-                    <Button
-                      variant="outline"
-                      asChild
-                      onClick={() => {
-                        setFile(null);
-                        setOcrText('');
-                        setMcqs([]);
-                        setError(null);
-                        setSuccess(false);
-                        setProgress(0);
-                      }}
-                    >
-                      <motion.button whileHover="hover" whileTap="tap">
-                        Reset
-                      </motion.button>
-                    </Button>
-                  </motion.div>
-                </div>
+                <Button variant="outline" onClick={() => {
+                  setError(null);
+                  setFile(null);
+                  setOcrText('');
+                  setMcqs([]);
+                  setProgress(0);
+                }}>
+                  Reset
+                </Button>
               </div>
 
-              <AnimatePresence> {/* ⭐ Animate progress bar */}
-                {progress > 0 && (
-                  <motion.div
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: 'auto' }}
-                    exit={{ opacity: 0, height: 0 }}
-                    transition={{ duration: 0.3 }}
-                    className="mt-4"
-                  >
-                    <p className="text-sm font-medium text-slate-700 mb-2">OCR Progress</p>
-                    <Progress value={progress} className="w-full h-2" />
-                    <p className="text-xs text-slate-500 mt-1">{progress}%</p>
-                  </motion.div>
-                )}
-              </AnimatePresence>
+              {progress > 0 && (
+                <div className="mt-4">
+                  <Progress value={progress} />
+                </div>
+              )}
 
-              <AnimatePresence> {/* ⭐ Animate error */}
-                {error && (
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.95 }}
-                    className="mt-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg flex items-center gap-2"
-                  >
-                    <CheckCircle className="h-4 w-4" /> {/* ⭐ Icon for error (ironic but fits) */}
-                    {error}
-                  </motion.div>
-                )}
-              </AnimatePresence>
-
-              <AnimatePresence mode="wait"> {/* ⭐ Animate extracted text section */}
-                {ocrText && (
-                  <motion.div
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: 'auto' }}
-                    exit={{ opacity: 0, height: 0 }}
-                    transition={{ duration: 0.5 }}
-                    className="mt-5"
-                  >
-                    <h3 className="font-semibold mb-2 flex items-center gap-2 text-slate-800">
-                      <CheckCircle className="h-4 w-4 text-green-500" />
-                      Extracted Text
-                    </h3>
-                    <motion.textarea
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      transition={{ delay: 0.2 }}
-                      className="w-full p-3 border rounded-lg bg-white text-sm resize-none shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      rows={10}
-                      value={ocrText}
-                      onChange={(e) => setOcrText(e.target.value)}
-                    />
-
-                    <motion.div variants={buttonVariants} className="mt-3">
-                      <Button
-                        variant="outline"
-                        asChild
-                        onClick={() => navigator.clipboard.writeText(ocrText)}
-                      >
-                        <motion.button whileHover="hover" whileTap="tap">
-                          <Copy className="h-4 w-4 mr-2" />
-                          Copy Text
-                        </motion.button>
-                      </Button>
-                    </motion.div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
+              {ocrText && (
+                <textarea
+                  className="w-full p-3 mt-5 border rounded-lg bg-white"
+                  rows={10}
+                  value={ocrText}
+                  onChange={(e) => setOcrText(e.target.value)}
+                />
+              )}
             </CardContent>
           </Card>
         </motion.div>
 
-        {/* Step 2 - Animated Card */}
-        <motion.div
-          variants={cardVariants}
-          initial="hidden"
-          animate="visible"
-          custom={1}
-          className="mt-10"
-        >
-          <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300 border-0 bg-white/80 backdrop-blur-sm">
-            <CardHeader className="pb-4">
-              <CardTitle className="text-lg flex items-center gap-2">
+        {/* ---- Step 2 ---- */}
+        <motion.div variants={cardVariants} initial="hidden" animate="visible" custom={1} className="mt-10">
+          <Card className="shadow-lg border-0 bg-white/80 backdrop-blur-sm">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-lg">
                 <Zap className="h-5 w-5 text-indigo-500" />
                 Step 2 — Generate MCQs (AI)
               </CardTitle>
             </CardHeader>
-            <CardContent>
-              <motion.div variants={buttonVariants}>
-                <Button
-                  asChild
-                  onClick={handleGenerate}
-                  disabled={generating || !ocrText}
-                  className="w-full flex items-center justify-center"
-                >
-                  <motion.button whileHover="hover" whileTap="tap">
-                    {generating ? (
-                      <>
-                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                        Generating...
-                      </>
-                    ) : (
-                      <>
-                        <Zap className="h-4 w-4 mr-2" />
-                        Generate MCQs
-                      </>
-                    )}
-                  </motion.button>
-                </Button>
-              </motion.div>
 
-              <AnimatePresence mode="wait"> {/* ⭐ Staggered MCQ animation */}
+            <CardContent>
+              <Button className="w-full" onClick={handleGenerate} disabled={!ocrText}>
+                {generating ? <Loader2 className="h-4 w-4 animate-spin" /> : "Generate MCQs"}
+              </Button>
+
+              {/* MCQ List */}
+              <AnimatePresence>
                 {mcqs.length > 0 && (
                   <motion.div
                     initial="hidden"
@@ -411,93 +308,42 @@ export default function AutoMCQPage() {
                       <motion.div
                         key={i}
                         variants={mcqItemVariants}
-                        className="p-4 border rounded-lg bg-gradient-to-br from-white to-slate-50 shadow-sm hover:shadow-md transition-all duration-200 border-slate-200"
+                        className="p-4 border rounded-lg bg-white shadow-sm"
                       >
-                        <p className="font-medium text-slate-800 mb-3">
-                          {i + 1}. {q.question_text}
-                        </p>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm text-slate-700">
-                          <div className="flex items-center gap-2 p-2 bg-blue-50 rounded text-blue-800">
-                            <span className="font-semibold">A.</span> {q.option_a}
-                          </div>
-                          <div className="flex items-center gap-2 p-2 bg-green-50 rounded text-green-800">
-                            <span className="font-semibold">B.</span> {q.option_b}
-                          </div>
-                          <div className="flex items-center gap-2 p-2 bg-yellow-50 rounded text-yellow-800">
-                            <span className="font-semibold">C.</span> {q.option_c}
-                          </div>
-                          <div className="flex items-center gap-2 p-2 bg-purple-50 rounded text-purple-800">
-                            <span className="font-semibold">D.</span> {q.option_d}
-                          </div>
+                        <p className="font-semibold">{i + 1}. {q.question_text}</p>
+
+                        <div className="grid grid-cols-2 gap-2 mt-2 text-sm">
+                          <div>A. {q.option_a}</div>
+                          <div>B. {q.option_b}</div>
+                          <div>C. {q.option_c}</div>
+                          <div>D. {q.option_d}</div>
                         </div>
-                        <motion.p // ⭐ Animate correct answer
-                          initial={{ scale: 0.8, opacity: 0 }}
-                          animate={{ scale: 1, opacity: 1 }}
-                          transition={{ delay: 0.5 }}
-                          className="text-green-700 text-sm mt-3 font-semibold flex items-center gap-1 bg-green-50 px-2 py-1 rounded" // ⭐ Removed duplicate 'inline-flex' to fix Tailwind conflict
-                        >
-                          <CheckCircle className="h-3 w-3" />
-                          Correct: {['A', 'B', 'C', 'D'][q.correct_index ?? 0]}
-                        </motion.p>
+
+                        <p className="text-green-700 font-medium mt-2">
+                          ✓ Correct: {['A', 'B', 'C', 'D'][q.correct_index ?? 0]}
+                        </p>
                       </motion.div>
                     ))}
 
-                    <div className="flex flex-col sm:flex-row gap-2 mt-6 pt-4 border-t border-slate-200">
-                      <motion.div variants={buttonVariants}>
-                        <Button
-                          asChild
-                          onClick={handleSave}
-                          disabled={saving}
-                          className="flex-1"
-                        >
-                          <motion.button whileHover="hover" whileTap="tap">
-                            <Save className="h-4 w-4 mr-2" />
-                            {saving ? 'Saving...' : 'Save All'}
-                          </motion.button>
-                        </Button>
-                      </motion.div>
+                    {/* Save Buttons */}
+                    <div className="flex gap-2 mt-4">
+                      <Button onClick={handleSave} disabled={saving}>
+                        {saving ? 'Saving...' : 'Save All'}
+                      </Button>
 
-                      <motion.div variants={buttonVariants}>
-                        <Button
-                          variant="outline"
-                          asChild
-                          onClick={() => navigator.clipboard.writeText(JSON.stringify(mcqs))}
-                        >
-                          <motion.button whileHover="hover" whileTap="tap">
-                            Copy JSON
-                          </motion.button>
-                        </Button>
-                      </motion.div>
+                      <Button variant="outline" onClick={() => navigator.clipboard.writeText(JSON.stringify(mcqs))}>
+                        Copy JSON
+                      </Button>
                     </div>
                   </motion.div>
                 )}
               </AnimatePresence>
 
-              {mcqs.length === 0 && !generating && (
-                <motion.p
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  className="mt-3 text-sm text-slate-500 italic"
-                >
-                  No MCQs yet — hit the button above to generate some magic! ✨
-                </motion.p>
+              {success && (
+                <div className="mt-4 p-3 bg-green-100 text-green-700 border rounded-lg flex items-center gap-2">
+                  <CheckCircle className="h-4 w-4" /> Saved Successfully!
+                </div>
               )}
-
-              {/* ⭐ Success Animation */}
-              <AnimatePresence>
-                {success && (
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.8 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.8 }}
-                    transition={{ duration: 0.5 }}
-                    className="mt-4 p-4 bg-green-50 border border-green-200 text-green-700 rounded-lg flex items-center gap-2"
-                  >
-                    <CheckCircle className="h-5 w-5 animate-pulse" />
-                    MCQs saved successfully! 🎉
-                  </motion.div>
-                )}
-              </AnimatePresence>
             </CardContent>
           </Card>
         </motion.div>
