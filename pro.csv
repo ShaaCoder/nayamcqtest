@@ -1,0 +1,49 @@
+question_text,option_a,option_b,option_c,option_d,correct_index,subject
+Which data structure uses FIFO order?,Stack,Queue,Tree,Graph,1,Programming
+Which keyword is used to define a constant in JavaScript?,var,const,let,static,1,Programming
+What is the default value of an uninitialized int variable in Java?,0,undefined,null,garbage value,0,Programming
+Which language is primarily used for Android app development?,Swift,Kotlin,Ruby,PHP,1,Programming
+Which symbol is used for single-line comments in Python?,//,#,/*,<!--,1,Programming
+Which HTML tag is used to include JavaScript code?,<js>,<javascript>,<script>,<code>,2,Programming
+What does SQL stand for?,Structured Query Language,Simple Query Language,Standard Query Logic,System Query Language,0,Programming
+Which operator is used to compare value and type in JavaScript?,==,===,!=,<=,1,Programming
+Which data type is immutable in Python?,List,Set,Dictionary,Tuple,3,Programming
+What is the time complexity of binary search?,O(n),O(log n),O(n log n),O(1),1,Programming
+Which keyword is used to inherit a class in Java?,this,implements,extends,super,2,Programming
+Which loop runs at least once regardless of condition?,for,while,do-while,foreach,2,Programming
+Which HTTP method is used to update existing data?,GET,POST,PUT,DELETE,2,Programming
+Which programming paradigm focuses on objects and classes?,Procedural,Functional,Object-Oriented,Logical,2,Programming
+Which function converts a string to integer in C?,atoi(),itoa(),strint(),parseInt(),0,Programming
+Which symbol is used to access object properties in JavaScript?,#,.,::,->,1,Programming
+Which language is used for styling web pages?,HTML,Python,CSS,Java,2,Programming
+What does API stand for?,Application Programming Interface,Advanced Programming Interface,Application Process Integration,Automated Programming Interface,0,Programming
+Which data structure uses LIFO order?,Queue,Array,Stack,Linked List,2,Programming
+Which command initializes a Git repository?,git start,git init,git create,git new,1,Programming
+Which keyword is used to handle exceptions in Java?,throw,try,catch,error,1,Programming
+Which language is used to write smart contracts on Ethereum?,Java,Python,Solidity,Rust,2,Programming
+Which tag is used to create a hyperlink in HTML?,<link>,<a>,<href>,<url>,1,Programming
+Which sorting algorithm has the best average time complexity?,Bubble Sort,Selection Sort,Quick Sort,Insertion Sort,2,Programming
+Which operator is used for logical AND in most languages?,&,&&,AND,||,1,Programming
+Which function is used to read input in Python?,input(),scan(),read(),get(),0,Programming
+Which file extension is used for TypeScript files?,.js,.java,.ts,.tsx,2,Programming
+Which concept allows multiple methods with same name?,Inheritance,Encapsulation,Polymorphism,Abstraction,2,Programming
+Which database is a NoSQL database?,MySQL,PostgreSQL,MongoDB,Oracle,2,Programming
+Which keyword is used to define a function in Python?,func,define,def,function,2,Programming
+Which protocol is used to transfer web pages?,FTP,SMTP,HTTP,SSH,2,Programming
+Which symbol represents pointer declaration in C?,&,*,->,#,1,Programming
+Which loop is best when number of iterations is known?,while,do-while,for,infinite,2,Programming
+Which JavaScript method converts JSON to object?,JSON.parse(),JSON.stringify(),JSON.object(),JSON.convert(),0,Programming
+Which programming language is case-sensitive?,HTML,Python,SQL,None,1,Programming
+Which keyword stops a loop execution?,stop,exit,break,return,2,Programming
+Which concept hides internal implementation?,Polymorphism,Abstraction,Inheritance,Compilation,1,Programming
+Which command is used to install packages in Node.js?,node install,npm get,npm install,node add,2,Programming
+Which data structure is used in BFS traversal?,Stack,Queue,Tree,Heap,1,Programming
+Which language is used for iOS development?,Java,Swift,C#,Kotlin,1,Programming
+Which operator is used for ternary condition?,?:,??,if-else,::,0,Programming
+Which type of error occurs at runtime?,Syntax error,Logical error,Runtime error,Compile-time error,2,Programming
+Which keyword creates an object in Java?,object,create,new,instance,2,Programming
+Which symbol is used for modulus operation?,/,%,*,+,1,Programming
+Which version control system is distributed?,SVN,CVS,Git,Perforce,2,Programming
+Which function prints output in Python?,print(),echo(),write(),show(),0,Programming
+Which architecture separates client and server?,MVC,Client-Server,Monolithic,Layered,1,Programming
+Which loop is used to iterate over arrays in JavaScript?,for,while,forEach,do-while,2,Programming
