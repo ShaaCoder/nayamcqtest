@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+
 import { supabaseAdmin } from '@/lib/supabaseAdmin';  // <-- FIXED
 import { getAdminSession } from '@/lib/auth';
 
@@ -8,7 +8,7 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams;
     const subject = searchParams.get('subject');
 
-    let query = supabase
+    let query = supabaseAdmin
       .from('questions')
       .select('*')
       .order('created_at', { ascending: false });

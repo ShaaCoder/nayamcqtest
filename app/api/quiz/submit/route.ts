@@ -1,6 +1,6 @@
 // /app/api/quiz/submit/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
+
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 
 interface IncomingAnswer {
@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
 
     const ids = answers.map((a: IncomingAnswer) => a.questionId);
 
-    const { data: questions, error } = await supabase
+    const { data: questions, error } = await supabaseAdmin
       .from("questions")
       .select("*")
       .in("id", ids);

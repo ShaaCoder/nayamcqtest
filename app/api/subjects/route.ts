@@ -1,27 +1,32 @@
+import { supabaseAdmin } from '@/lib/supabaseAdmin';
 import { NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+
 
 export async function GET() {
   try {
-    const { data: questions, error } = await supabase
+    const { data, error } = await supabaseAdmin
       .from('questions')
       .select('subject');
 
     if (error) {
-      return NextResponse.json(
-        { error: 'Failed to fetch subjects' },
-        { status: 500 }
-      );
+      console.error(error);
+      return NextResponse.json({ subjects: [] }, { status: 500 });
     }
 
-    const subjects = Array.from(new Set(questions?.map(q => q.subject) || []));
+    // ✅ normalize + deduplicate
+    const subjects = Array.from(
+      new Set(
+        (data || [])
+          .map(q => q.subject?.trim().toLowerCase())
+          .filter(Boolean)
+      )
+    ).map(
+      s => s.charAt(0).toUpperCase() + s.slice(1)
+    );
 
     return NextResponse.json({ subjects });
-  } catch (error) {
-    console.error('Get subjects error:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+  } catch (err) {
+    console.error(err);
+    return NextResponse.json({ subjects: [] }, { status: 500 });
   }
 }

@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter, useParams, useSearchParams } from 'next/navigation';
-import { supabase } from '@/lib/supabase';
+
+import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -21,37 +22,32 @@ export default function ResultPage() {
   const [result, setResult] = useState<any>(null);
   const [questions, setQuestions] = useState<Question[]>([]); // New: Fetch full questions for options
   const [showDetails, setShowDetails] = useState(true);
+useEffect(() => {
+  if (!id) {
+    router.push('/');
+    return;
+  }
 
-  useEffect(() => {
-    if (!id) {
-      router.push('/');
-      return;
-    }
+  const loadResult = async () => {
+    try {
+      const res = await fetch(`/api/quiz/result?id=${id}`);
+      const data = await res.json();
 
-    const loadResult = async () => {
-      const { data, error } = await supabase
-        .from('quiz_results')
-        .select('*')
-        .eq('id', id)
-        .single();
-
-      if (error || !data) {
-        console.error("Result fetch error:", error);
+      if (!res.ok) {
         router.push('/');
         return;
       }
 
-      setResult({
-        totalQuestions: data.total_questions,
-        correctAnswers: data.correct_answers,
-        wrongAnswers: data.wrong_answers,
-        scorePercentage: data.score_percentage,
-        results: data.results_json || [],
-      });
-    };
+      setResult(data);
+    } catch (err) {
+      console.error("Result fetch failed", err);
+      router.push('/');
+    }
+  };
 
-    loadResult();
-  }, [id, router]);
+  loadResult();
+}, [id, router]);
+
 
   // New: Fetch full questions to get option texts
   useEffect(() => {
