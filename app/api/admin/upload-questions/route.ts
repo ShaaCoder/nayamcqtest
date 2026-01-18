@@ -1,39 +1,58 @@
-// /app/api/admin/upload-questions/route.ts
+export const runtime = "nodejs";
+
 import { NextRequest, NextResponse } from "next/server";
-import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import { connectDB } from "@/lib/mongodb";
+import { Question } from "@/models/Question";
+import { getAdminSession } from "@/lib/auth";
+
+/* ================= TYPES ================= */
+
+interface RawQ {
+  question_text?: string;
+  option_a?: string;
+  option_b?: string;
+  option_c?: string;
+  option_d?: string;
+  correct_index?: string | number;
+  subject?: string;
+}
+
+interface CleanQ {
+  question_text: string;
+  option_a: string;
+  option_b: string;
+  option_c: string;
+  option_d: string;
+  correct_index: number;
+  subject: string;
+}
+
+/* ================= API ================= */
 
 export async function POST(req: NextRequest) {
   try {
+    /* 🔐 ADMIN AUTH */
+    const adminId = getAdminSession();
+    if (!adminId) {
+      return NextResponse.json(
+        { error: "Unauthorized" },
+        { status: 401 }
+      );
+    }
+
+    await connectDB();
+
     const { rows } = await req.json();
 
-    if (!rows?.length) {
+    if (!Array.isArray(rows) || rows.length === 0) {
       return NextResponse.json(
         { error: "No data received" },
         { status: 400 }
       );
     }
 
-    interface RawQ {
-      question_text?: string;
-      option_a?: string;
-      option_b?: string;
-      option_c?: string;
-      option_d?: string;
-      correct_index?: string | number;
-      subject?: string;
-    }
+    /* ================= CLEAN & VALIDATE ================= */
 
-    interface CleanQ {
-      question_text: string;
-      option_a: string;
-      option_b: string;
-      option_c: string;
-      option_d: string;
-      correct_index: number;
-      subject: string;
-    }
-
-    // CLEAN DATA
     const cleaned: CleanQ[] = (rows as RawQ[])
       .map((r) => ({
         question_text: r.question_text?.trim() || "",
@@ -41,7 +60,7 @@ export async function POST(req: NextRequest) {
         option_b: r.option_b?.trim() || "",
         option_c: r.option_c?.trim() || "",
         option_d: r.option_d?.trim() || "",
-        subject: r.subject?.trim() || "",
+        subject: r.subject?.trim().toLowerCase() || "",
         correct_index: Number(r.correct_index),
       }))
       .filter(
@@ -52,7 +71,7 @@ export async function POST(req: NextRequest) {
           q.option_c &&
           q.option_d &&
           q.subject &&
-          !isNaN(q.correct_index) &&
+          Number.isInteger(q.correct_index) &&
           q.correct_index >= 0 &&
           q.correct_index <= 3
       );
@@ -64,59 +83,59 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // REMOVE DUPLICATES IN SAME FILE
-    const map = new Map<string, CleanQ>();
-    cleaned.forEach((q) => {
-      map.set(q.question_text.toLowerCase(), q);
-    });
-    const unique = Array.from(map.values());
+    /* ================= REMOVE DUPLICATES (FILE) ================= */
 
-    // REMOVE QUESTIONS ALREADY IN DATABASE
-    const { data: existing } = await supabaseAdmin
-      .from("questions")
-      .select("question_text");
+    const fileMap = new Map<string, CleanQ>();
+    cleaned.forEach((q) => {
+      fileMap.set(q.question_text.toLowerCase(), q);
+    });
+    const uniqueInFile = Array.from(fileMap.values());
+
+    /* ================= REMOVE DUPLICATES (DB) ================= */
+
+    const existing = await Question.find(
+      {
+        question_text: {
+          $in: uniqueInFile.map((q) => q.question_text),
+        },
+      },
+      { question_text: 1 }
+    ).lean();
 
     const existingSet = new Set(
-      existing?.map((q) => q.question_text.toLowerCase())
+      existing.map((q) => q.question_text.toLowerCase())
     );
 
-    const finalInsert = unique.filter(
+    const finalInsert = uniqueInFile.filter(
       (q) => !existingSet.has(q.question_text.toLowerCase())
     );
 
     if (!finalInsert.length) {
       return NextResponse.json(
-        { error: "All questions already exist" },
+        { error: "All questions already exist in database" },
         { status: 409 }
       );
     }
 
-    // INSERT TO SUPABASE
-    const { error } = await supabaseAdmin
-      .from("questions")
-      .insert(finalInsert);
+    /* ================= INSERT ================= */
 
-    if (error) {
-      console.error("Insert error:", error);
-      return NextResponse.json(
-        { error: error.message },
-        { status: 500 }
-      );
-    }
+    await Question.insertMany(finalInsert);
+
+    /* ================= RESPONSE ================= */
 
     return NextResponse.json({
       success: true,
       received: rows.length,
       cleaned: cleaned.length,
-      unique: unique.length,
+      unique_in_file: uniqueInFile.length,
       inserted: finalInsert.length,
-      duplicates_in_file: cleaned.length - unique.length,
-      duplicates_in_db: unique.length - finalInsert.length,
+      duplicates_in_file: cleaned.length - uniqueInFile.length,
+      duplicates_in_db: uniqueInFile.length - finalInsert.length,
     });
-  } catch (err) {
-    console.error("Upload error:", err);
+  } catch (err: any) {
+    console.error("Upload questions error:", err);
     return NextResponse.json(
-      { error: "Server error" },
+      { error: err.message || "Server error" },
       { status: 500 }
     );
   }

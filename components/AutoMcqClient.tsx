@@ -69,6 +69,7 @@ export default function AutoMcqClient() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+const [subject, setSubject] = useState('');
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
@@ -165,23 +166,35 @@ export default function AutoMcqClient() {
     if (text.trim().length < 10) setError('OCR returned very little text.');
   };
 
-  const handleGenerate = async () => {
-    if (!ocrText) return setError('No extracted text present.');
+const handleGenerate = async () => {
+  if (!ocrText) return setError("No extracted text.");
+  if (!subject) return setError("Subject is required.");
 
-    setGenerating(true);
-    const res = await fetch('/api/mcq/generate', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ extractedText: ocrText }),
+  setGenerating(true);
+  setError(null);
+
+  try {
+    const res = await fetch("/api/mcq/generate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        extractedText: ocrText,
+        subject,
+      }),
     });
 
     const data = await res.json();
-    setGenerating(false);
 
-    if (!res.ok) return setError(data.error || 'MCQ generation failed.');
+    if (!res.ok) throw new Error(data.error);
 
     setMcqs(data.mcqs);
-  };
+  } catch (err: any) {
+    setError(err.message || "MCQ generation failed.");
+  } finally {
+    setGenerating(false);
+  }
+};
+
 
   const handleSave = async () => {
     if (!mcqs.length) return setError('No MCQs to save.');
@@ -285,6 +298,14 @@ export default function AutoMcqClient() {
           <Card className="shadow-lg border-0 bg-white/80 backdrop-blur-sm">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-lg">
+                <input
+  type="text"
+  placeholder="Enter subject (e.g. Polity, History)"
+  value={subject}
+  onChange={(e) => setSubject(e.target.value)}
+  className="w-full mb-4 p-3 border rounded-lg"
+/>
+
                 <Zap className="h-5 w-5 text-indigo-500" />
                 Step 2 — Generate MCQs (AI)
               </CardTitle>

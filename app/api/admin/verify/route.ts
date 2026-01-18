@@ -1,39 +1,47 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getAdminSession } from "@/lib/auth";
-import { supabaseAdmin } from "@/lib/supabaseAdmin"; // ✅ correct file
+export const runtime = "nodejs";
 
-export async function GET(request: NextRequest) {
+import { NextResponse } from "next/server";
+import { getAdminSession } from "@/lib/auth";
+import { connectDB } from "@/lib/mongodb";
+import { Admin } from "@/models/Admin";
+
+export async function GET() {
   try {
-    // 🔥 getAdminSession is async → MUST await
-    const adminId = await getAdminSession();
+    // ✅ Get adminId from JWT cookie
+    const adminId = getAdminSession();
 
     if (!adminId) {
       return NextResponse.json(
-        { error: "Not authenticated" },
+        { authenticated: false },
         { status: 401 }
       );
     }
 
-    // 🔥 Only service role can read admins table
-    const { data: admin, error } = await supabaseAdmin
-      .from("admins")
-      .select("id, username, created_at")
-      .eq("id", adminId)
-      .single();
+    await connectDB();
 
-    if (error || !admin) {
+    // ✅ Fetch admin from MongoDB
+    const admin = await Admin.findById(adminId).select(
+      "_id username created_at"
+    );
+
+    if (!admin) {
       return NextResponse.json(
-        { error: "Invalid session" },
+        { authenticated: false },
         { status: 401 }
       );
     }
 
     return NextResponse.json({
       authenticated: true,
-      admin,
+      admin: {
+        id: admin._id.toString(),
+        username: admin.username,
+        created_at: admin.created_at,
+      },
     });
   } catch (error) {
     console.error("Verify error:", error);
+
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

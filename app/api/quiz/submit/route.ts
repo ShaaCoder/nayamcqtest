@@ -1,40 +1,40 @@
-// /app/api/quiz/submit/route.ts
-import { NextRequest, NextResponse } from "next/server";
+export const runtime = "nodejs";
 
-import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import { NextRequest, NextResponse } from "next/server";
+import { connectDB } from "@/lib/mongodb";
+import { Question } from "@/models/Question";
+import { QuizResult } from "@/models/QuizResult";
 
 interface IncomingAnswer {
   questionId: string;
   selectedIndex: number;
 }
 
-interface QuestionRow {
-  id: string;
-  question_text: string;
-  option_a: string;
-  option_b: string;
-  option_c: string;
-  option_d: string;
-  correct_index: number;
-}
-
 export async function POST(request: NextRequest) {
   try {
-    const { answers, subject }: { answers: IncomingAnswer[]; subject: string } =
+    await connectDB();
+
+    const {
+      answers,
+      subject,
+    }: { answers: IncomingAnswer[]; subject: string } =
       await request.json();
 
     if (!answers?.length || !subject) {
-      return NextResponse.json({ error: "Invalid request" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Invalid request" },
+        { status: 400 }
+      );
     }
 
-    const ids = answers.map((a: IncomingAnswer) => a.questionId);
+    // 🔹 Fetch questions by MongoDB _id
+    const ids = answers.map((a) => a.questionId);
 
-    const { data: questions, error } = await supabaseAdmin
-      .from("questions")
-      .select("*")
-      .in("id", ids);
+    const questions = await Question.find({
+      _id: { $in: ids },
+    });
 
-    if (error || !questions) {
+    if (!questions.length) {
       return NextResponse.json(
         { error: "Failed to fetch questions" },
         { status: 500 }
@@ -44,9 +44,9 @@ export async function POST(request: NextRequest) {
     let correct = 0;
 
     const results = answers
-      .map((ans: IncomingAnswer) => {
-        const q = (questions as QuestionRow[]).find(
-          (row) => row.id === ans.questionId
+      .map((ans) => {
+        const q = questions.find(
+          (row: any) => row._id.toString() === ans.questionId
         );
         if (!q) return null;
 
@@ -54,38 +54,34 @@ export async function POST(request: NextRequest) {
         if (ok) correct++;
 
         return {
-          questionId: q.id,
+          questionId: q._id.toString(),
           question: q.question_text,
           selectedIndex: ans.selectedIndex,
           correctIndex: q.correct_index,
           isCorrect: ok,
         };
       })
-      .filter((x): x is NonNullable<typeof x> => Boolean(x));
+      .filter(Boolean);
 
     const wrong = answers.length - correct;
-    const percentage = (correct / answers.length) * 100;
+    const percentage = Math.round((correct / answers.length) * 100);
 
-    const { data: inserted, error: saveErr } = await supabaseAdmin
-      .from("quiz_results")
-      .insert({
-        subject,
-        total_questions: answers.length,
-        correct_answers: correct,
-        wrong_answers: wrong,
-        score_percentage: percentage,
-        results_json: results,
-      })
-      .select("id")
-      .single();
+    // 🔹 Save quiz result
+    const saved = await QuizResult.create({
+      subject,
+      total_questions: answers.length,
+      correct_answers: correct,
+      wrong_answers: wrong,
+      score_percentage: percentage,
+      results, // stored as array
+    });
 
-    if (saveErr) {
-      return NextResponse.json({ error: "Save failed" }, { status: 500 });
-    }
-
-    return NextResponse.json({ id: inserted.id });
+    return NextResponse.json({ id: saved._id.toString() });
   } catch (err) {
     console.error("Submit error:", err);
-    return NextResponse.json({ error: "Server error" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Server error" },
+      { status: 500 }
+    );
   }
 }

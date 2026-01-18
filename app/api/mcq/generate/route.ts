@@ -7,32 +7,41 @@ const client = new OpenAI({
 
 export async function POST(req: Request) {
   try {
-    const { extractedText } = await req.json();
+    const { extractedText, subject } = await req.json();
 
-    if (!extractedText || extractedText.trim().length < 5) {
+    // ---------- VALIDATION ----------
+    if (!extractedText || extractedText.trim().length < 20) {
       return NextResponse.json(
-        { error: "No text provided" },
+        { error: "Insufficient text for MCQ generation." },
         { status: 400 }
       );
     }
 
-    const completion = await client.chat.completions.create({
-      model: "gpt-4o-mini",
-      response_format: { type: "json_object" },
-      messages: [
-        {
-          role: "system",
-          content:
-            "You are an MCQ generator. ALWAYS return valid JSON ONLY."
-        },
-        {
-          role: "user",
-          content: `
-Generate 5 MCQs from this text:
+    if (!subject || subject.trim().length < 2) {
+      return NextResponse.json(
+        { error: "Subject is required." },
+        { status: 400 }
+      );
+    }
 
+    const normalizedSubject = subject.trim().toLowerCase();
+
+    // ---------- AI CALL ----------
+    const response = await client.responses.create({
+      model: "gpt-4.1-mini",
+      input: `
+Generate exactly 5 multiple choice questions.
+
+Text:
 ${extractedText}
 
-Return ONLY JSON:
+Rules:
+- Return STRICT JSON only
+- No explanations
+- No markdown
+- No extra text
+
+JSON format:
 {
   "mcqs": [
     {
@@ -45,19 +54,30 @@ Return ONLY JSON:
     }
   ]
 }
-`
-        }
-      ],
+`,
     });
 
-    const raw = completion.choices[0].message.content;
-    const json = JSON.parse(raw!);
+    const raw = response.output_text;
 
-    return NextResponse.json({ mcqs: json.mcqs });
-  } catch (err: any) {
-    console.error("MCQ API ERROR:", err);
+    if (!raw) throw new Error("Empty AI response");
+
+    const parsed = JSON.parse(raw);
+
+    if (!Array.isArray(parsed.mcqs)) {
+      throw new Error("Invalid MCQ format");
+    }
+
+    const mcqs = parsed.mcqs.map((q: any) => ({
+      ...q,
+      subject: normalizedSubject,
+    }));
+
+    return NextResponse.json({ mcqs });
+
+  } catch (err) {
+    console.error("MCQ GENERATION ERROR:", err);
     return NextResponse.json(
-      { error: "Failed to generate MCQs" },
+      { error: "Failed to generate MCQs." },
       { status: 500 }
     );
   }

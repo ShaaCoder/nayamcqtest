@@ -1,11 +1,15 @@
-// /app/api/admin/login/route.ts
+export const runtime = "nodejs";
+
 import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
-import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import { connectDB } from "@/lib/mongodb";
+import { Admin } from "@/models/Admin";
 import { setAdminSession } from "@/lib/auth";
 
 export async function POST(request: NextRequest) {
   try {
+    await connectDB();
+
     const { username, password } = await request.json();
 
     if (!username || !password) {
@@ -15,14 +19,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Admin table is protected → use service role
-    const { data: admin, error } = await supabaseAdmin
-      .from("admins")
-      .select("*")
-      .eq("username", username)
-      .single();
-
-    if (error || !admin) {
+    const admin = await Admin.findOne({ username });
+    if (!admin) {
       return NextResponse.json(
         { error: "Invalid username or password" },
         { status: 401 }
@@ -37,12 +35,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    await setAdminSession(admin.id);
+    // ✅ DO NOT await
+    setAdminSession(admin._id.toString());
 
     return NextResponse.json({
       message: "Login successful",
       admin: {
-        id: admin.id,
+        id: admin._id.toString(),
         username: admin.username,
       },
     });

@@ -1,20 +1,42 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { supabaseAdmin } from '@/lib/supabaseAdmin';   // ✅ FIXED IMPORT
-import { getAdminSession } from '@/lib/auth';
+export const runtime = "nodejs";
 
+import { NextRequest, NextResponse } from "next/server";
+import { connectDB } from "@/lib/mongodb";
+import { Question } from "@/models/Question";
+import { getAdminSession } from "@/lib/auth";
+
+/**
+ * PUT /api/questions/:id
+ * Update a question (admin only)
+ */
 export async function PUT(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
-    const adminId = await getAdminSession(); // ✅ FIXED
+    // 🔐 Admin auth
+    const adminId = getAdminSession();
     if (!adminId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json(
+        { error: "Unauthorized" },
+        { status: 401 }
+      );
     }
 
-    const body = await request.json();
-    const { question_text, option_a, option_b, option_c, option_d, correct_index, subject } = body;
+    await connectDB();
 
+    const body = await request.json();
+    const {
+      question_text,
+      option_a,
+      option_b,
+      option_c,
+      option_d,
+      correct_index,
+      subject,
+    } = body;
+
+    // ✅ Same validations as Supabase version
     if (
       !question_text ||
       !option_a ||
@@ -24,19 +46,22 @@ export async function PUT(
       correct_index === undefined ||
       !subject
     ) {
-      return NextResponse.json({ error: 'All fields are required' }, { status: 400 });
-    }
-
-    if (correct_index < 0 || correct_index > 3) {
       return NextResponse.json(
-        { error: 'Correct index must be between 0 and 3' },
+        { error: "All fields are required" },
         { status: 400 }
       );
     }
 
-    const { data: question, error } = await supabaseAdmin
-      .from('questions')
-      .update({
+    if (correct_index < 0 || correct_index > 3) {
+      return NextResponse.json(
+        { error: "Correct index must be between 0 and 3" },
+        { status: 400 }
+      );
+    }
+
+    const question = await Question.findByIdAndUpdate(
+      params.id,
+      {
         question_text,
         option_a,
         option_b,
@@ -44,51 +69,66 @@ export async function PUT(
         option_d,
         correct_index,
         subject,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', params.id)
-      .select()
-      .single();
+        updated_at: new Date(),
+      },
+      { new: true }
+    );
 
-    if (error) {
+    if (!question) {
       return NextResponse.json(
-        { error: 'Failed to update question' },
-        { status: 500 }
+        { error: "Question not found" },
+        { status: 404 }
       );
     }
 
+    // ✅ Same response shape
     return NextResponse.json({ question });
   } catch (error) {
-    console.error('Update question error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    console.error("Update question error:", error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
   }
 }
 
+/**
+ * DELETE /api/questions/:id
+ * Delete a question (admin only)
+ */
 export async function DELETE(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
-    const adminId = await getAdminSession(); // ✅ FIXED
+    // 🔐 Admin auth
+    const adminId = getAdminSession();
     if (!adminId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const { error } = await supabaseAdmin
-      .from('questions')
-      .delete()
-      .eq('id', params.id);
-
-    if (error) {
       return NextResponse.json(
-        { error: 'Failed to delete question' },
-        { status: 500 }
+        { error: "Unauthorized" },
+        { status: 401 }
       );
     }
 
-    return NextResponse.json({ message: 'Question deleted successfully' });
+    await connectDB();
+
+    const deleted = await Question.findByIdAndDelete(params.id);
+
+    if (!deleted) {
+      return NextResponse.json(
+        { error: "Question not found" },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json({
+      message: "Question deleted successfully",
+    });
   } catch (error) {
-    console.error('Delete question error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    console.error("Delete question error:", error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
   }
 }

@@ -32,33 +32,61 @@ export default function AdminDashboard() {
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
-  useEffect(() => {
-    verifyAdmin();
-    fetchQuestions();
-  }, []);
+// useEffect(() => {
+//   const init = async () => {
+//     await verifyAdmin();
+//     await fetchQuestions();
+//   };
 
-  const verifyAdmin = async () => {
-    try {
-      const response = await fetch('/api/admin/verify');
-      if (!response.ok) {
-        router.push('/admin/login');
-      }
-    } catch (error) {
-      router.push('/admin/login');
-    }
-  };
+//   init();
+// }, []);
 
-  const fetchQuestions = async () => {
-    try {
-      const response = await fetch('/api/questions');
-      const data = await response.json();
-      setQuestions(data.questions || []);
-    } catch (error) {
-      console.error('Failed to fetch questions:', error);
-    } finally {
-      setLoading(false);
+
+//   const verifyAdmin = async () => {
+//     try {
+//       const response = await fetch('/api/admin/verify');
+//       if (!response.ok) {
+//         router.push('/admin/login');
+//       }
+//     } catch (error) {
+//       router.push('/admin/login');
+//     }
+//   };
+useEffect(() => {
+  fetchQuestions();
+}, []);
+
+
+const fetchQuestions = async () => {
+  try {
+  const response = await fetch('/api/questions', {
+  credentials: 'include',
+});
+
+
+    if (!response.ok) {
+      throw new Error('Failed to fetch questions');
     }
-  };
+
+    const data = await response.json();
+
+    // ✅ Handle ALL possible API shapes safely
+    if (Array.isArray(data)) {
+      setQuestions(data);
+    } else if (Array.isArray(data.questions)) {
+      setQuestions(data.questions);
+    } else {
+      setQuestions([]); // fallback
+    }
+  } catch (error) {
+    console.error('Failed to fetch questions:', error);
+    setQuestions([]);
+  } finally {
+    setLoading(false);
+  }
+};
+
+
 
   const handleLogout = async () => {
     try {
@@ -114,11 +142,15 @@ export default function AdminDashboard() {
         : '/api/questions';
       const method = editingQuestion ? 'PUT' : 'POST';
 
-      const response = await fetch(url, {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
-      });
+  const response = await fetch(url, {
+  method,
+  credentials: 'include', // 🔥 REQUIRED
+  headers: {
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify(formData),
+});
+
 
       const data = await response.json();
 
@@ -139,7 +171,11 @@ export default function AdminDashboard() {
     if (!confirm('Are you sure you want to delete this question?')) return;
 
     try {
-      const response = await fetch(`/api/questions/${id}`, { method: 'DELETE' });
+      const response = await fetch(`/api/questions/${id}`, {
+  method: 'DELETE',
+  credentials: 'include',
+});
+
       if (!response.ok) throw new Error('Failed to delete question');
       await fetchQuestions();
     } catch (error) {
