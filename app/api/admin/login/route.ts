@@ -1,8 +1,5 @@
 export const runtime = "nodejs";
-<<<<<<< HEAD
-=======
 export const dynamic = "force-dynamic";
->>>>>>> 90a1623 (fix the api/categories put method seo excced)
 
 import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";

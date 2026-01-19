@@ -1,8 +1,5 @@
 export const runtime = "nodejs";
-<<<<<<< HEAD
-=======
 export const dynamic = "force-dynamic";
->>>>>>> 90a1623 (fix the api/categories put method seo excced)
 
 import { NextResponse } from "next/server";
 import { clearAdminSession } from "@/lib/auth";
