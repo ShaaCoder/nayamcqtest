@@ -1,4 +1,8 @@
 export const runtime = "nodejs";
+<<<<<<< HEAD
+=======
+export const dynamic = "force-dynamic";
+>>>>>>> 90a1623 (fix the api/categories put method seo excced)
 
 import { NextRequest, NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongodb";
@@ -19,7 +23,10 @@ export async function GET(req: NextRequest) {
       );
     }
 
+<<<<<<< HEAD
     // 🔐 Validate Mongo ObjectId
+=======
+>>>>>>> 90a1623 (fix the api/categories put method seo excced)
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return NextResponse.json(
         { error: "Invalid id" },
@@ -36,7 +43,10 @@ export async function GET(req: NextRequest) {
       );
     }
 
+<<<<<<< HEAD
     // ✅ SAME response shape as Supabase version
+=======
+>>>>>>> 90a1623 (fix the api/categories put method seo excced)
     return NextResponse.json({
       totalQuestions: data.total_questions,
       correctAnswers: data.correct_answers,
@@ -46,7 +56,10 @@ export async function GET(req: NextRequest) {
     });
   } catch (error) {
     console.error("Quiz result fetch error:", error);
+<<<<<<< HEAD
 
+=======
+>>>>>>> 90a1623 (fix the api/categories put method seo excced)
     return NextResponse.json(
       { error: "Server error" },
       { status: 500 }

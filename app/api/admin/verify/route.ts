@@ -1,4 +1,8 @@
 export const runtime = "nodejs";
+<<<<<<< HEAD
+=======
+export const dynamic = "force-dynamic";
+>>>>>>> 90a1623 (fix the api/categories put method seo excced)
 
 import { NextResponse } from "next/server";
 import { getAdminSession } from "@/lib/auth";
@@ -7,7 +11,10 @@ import { Admin } from "@/models/Admin";
 
 export async function GET() {
   try {
+<<<<<<< HEAD
     // ✅ Get adminId from JWT cookie
+=======
+>>>>>>> 90a1623 (fix the api/categories put method seo excced)
     const adminId = getAdminSession();
 
     if (!adminId) {
@@ -19,7 +26,10 @@ export async function GET() {
 
     await connectDB();
 
+<<<<<<< HEAD
     // ✅ Fetch admin from MongoDB
+=======
+>>>>>>> 90a1623 (fix the api/categories put method seo excced)
     const admin = await Admin.findById(adminId).select(
       "_id username created_at"
     );
@@ -41,7 +51,10 @@ export async function GET() {
     });
   } catch (error) {
     console.error("Verify error:", error);
+<<<<<<< HEAD
 
+=======
+>>>>>>> 90a1623 (fix the api/categories put method seo excced)
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }
