@@ -4,10 +4,8 @@ import type { NextRequest } from "next/server";
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // ✅ Just check cookie existence (NO jwt.verify)
   const hasSession = request.cookies.has("admin_session");
 
-  // PUBLIC ADMIN ROUTES
   const publicAdminRoutes = [
     "/admin/login",
     "/admin/signup",
@@ -20,10 +18,12 @@ export function middleware(request: NextRequest) {
     "/api/admin/verify",
   ];
 
+  // ✅ Allow public admin pages
   if (publicAdminRoutes.includes(pathname)) {
     return NextResponse.next();
   }
 
+  // ✅ Allow public admin APIs
   if (publicAdminApiRoutes.includes(pathname)) {
     return NextResponse.next();
   }
@@ -35,12 +35,8 @@ export function middleware(request: NextRequest) {
     );
   }
 
-  // 🔐 Protect admin APIs
-  if (
-    (pathname.startsWith("/api/admin") ||
-     pathname.startsWith("/api/questions")) &&
-    !hasSession
-  ) {
+  // 🔐 Protect ONLY admin APIs
+  if (pathname.startsWith("/api/admin") && !hasSession) {
     return NextResponse.json(
       { error: "Unauthorized" },
       { status: 401 }
@@ -54,6 +50,5 @@ export const config = {
   matcher: [
     "/admin/:path*",
     "/api/admin/:path*",
-    "/api/questions/:path*",
   ],
 };
